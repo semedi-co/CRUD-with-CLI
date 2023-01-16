@@ -10,7 +10,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^5.1.0",
     "cli-color": "^2.0.3",
+    "crypto": "^1.0.1",
     "dotenv": "^16.0.3",
     "knex": "^2.4.0",
     "mysql2": "^3.0.1"

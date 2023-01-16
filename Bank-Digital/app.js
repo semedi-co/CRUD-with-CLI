@@ -1,6 +1,7 @@
 const db        = require("./database");
 const readline  = require("readline");
 const clc       = require("cli-color");
+const bcrypt    = require("bcrypt")
 
 // initialize readline 
 const rl = readline.createInterface({
@@ -54,7 +55,7 @@ const rekening = () => {
                 if (pin.trim().length == 0) {
                   console.log(clc.red("PIN harus diisi !!"));
                   rekening();
-                } else if (pin.trim().length < 6) {
+                } else if (pin.trim().length < 6 || pin.trim().length > 6) {
                   console.log(clc.red("panjang PIN harus 6 digit"));
                   rekening();
                 } else {
@@ -73,8 +74,8 @@ const rekening = () => {
                           tanggal_lahir,
                           alamat,
                           no_rekening: require("crypto").randomInt(999999),
-                          pin: require("crypto").randomUUID(),
-                          saldo,
+                          pin: bcrypt.hashSync(pin, 10),
+                          saldo: +saldo,
                         })
                         .catch(err => {
                           console.log(clc.red(err.message));
