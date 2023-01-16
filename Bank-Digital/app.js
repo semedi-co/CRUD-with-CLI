@@ -67,9 +67,10 @@ const rekening = () => {
                       console.log(clc.red("Saldo awal minimal Rp. 50.000"));
                       rekening();
                     } else {
+                      const uuid = require("crypto").randomUUID();
                       await db("nasabah")
                         .insert({
-                          id: require("crypto").randomUUID(),
+                          id: uuid,
                           nama,
                           tanggal_lahir,
                           alamat,
@@ -84,7 +85,7 @@ const rekening = () => {
                       
                       console.log(clc.greenBright("\n Selamat pembukaan rekening berhasil :) \n "));
                       
-                      const data = await db("nasabah").select(db.raw("nama, DATE_FORMAT(tanggal_lahir, '%d-%m-%Y') AS tanggal_lahir, alamat, no_rekening, saldo "));
+                      const data = await db("nasabah").where({ id: uuid }).select(db.raw("nama, DATE_FORMAT(tanggal_lahir, '%d-%m-%Y') AS tanggal_lahir, alamat, no_rekening, saldo "));
                         data.forEach((d) => {
                           console.log("Nama : " + d.nama);
                           console.log("Tanggal lahir : " + d.tanggal_lahir);
