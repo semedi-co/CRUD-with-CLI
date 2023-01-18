@@ -21,9 +21,9 @@ const main = () => {
             registerBank()
             
         } else if (answer == 2) {
-            
+            setor()
         }else if (answer == 3) {
-            
+            tarik()
         }else if (answer == 4) {
             
         }else if (answer == 5) {
@@ -63,8 +63,8 @@ const registerBank = () => {
                                         if (saldo.trim().length == 0) {
                                             console.log(clc.red("Saldo harus di isi "));
                                             registerBank()
-                                        }else if (saldo < 100000) {
-                                            console.log(clc.red("saldo harus lebih / sama dengan",100000));
+                                        }else if (+saldo < 50000) {
+                                            console.log(clc.red("saldo harus lebih / sama dengan",50000));
                                             registerBank()
                                         }else {
                                             const id = crypto.randomUUID()
@@ -77,7 +77,7 @@ const registerBank = () => {
                                                     tanggal_lahir,
                                                     no_rekening: require("crypto").randomInt(999999),
                                                     pin: bcrypt.hashSync(pin,6),
-                                                    saldo
+                                                    saldo: +saldo
                                                 })
                                                 .catch(err => {
                                                     console.log(err.massage);
@@ -110,4 +110,210 @@ const getRegisterBank= async (get) => {
     });
     main()
 }
+const setor = () => {
+    rl.question("Masukkan No. Rekening anda: " , async rekening => {
+        if (rekening.trim().length == 0) {
+            console.log(clc.red("No Rekening harus di isi"));
+        }
+        const no = await db("nasabah").where({no_rekening: rekening}).first()
+        if (!no) {
+            console.log(clc.red("No. Rekening belum terdaftar"));
+            setor()
+        }else if (no.status == "diblokir") {
+            console.log(clc.red("No. Rekening ini tidak aktif/ di blokir"));
+            main()
+        }else {
+            let e = 0;
+            const inputPIN = (rekening, hashPIN) => {
+                rl.question("Masukkan PIN anda: ", async pin => {
+                    if (pin.trim().length == 0) {
+                        console.log(clc.red("PIN harus di isi!!"));
+                        e += 1
+                        inputPIN(rekening,hashPIN);
+                    }else if (!bcrypt.compareSync(pin, hashPIN)) {
+                        console.log(clc.red("PIN yang anda masukkan salah!!"));
+                        e += 1;;
+                        if (e < 3) {
+                           inputPIN(rekening, hashPIN) 
+                        }
+                    }else {
+                        const jumlahtarik= () => {
+                            rl.question("Masukkan uang yang mau anda setor: ", async jumlah => {
+                                if (jumlah.trim().length == 0) {
+                                    console.log(clc.red("Jumlah uang setoran hasrus diisi !!!"));
+                                    jumlahtarik()
+                                } else if (+jumlah < 50000) {
+                                    console.log(clc.red("Jumlah setor minimal 50000"));
+                                    jumlahtarik();
+                                }else if (+jumlah.trim() % 50000 != 0) {
+                                    console.log(clc.greenBright("Uang yang harus disetorkan harus pecahan Rp. 50.000,00 atau Rp 100.000,00 !!"));
+                                    jumlahtarik()
+                                }else {
+                                    await db("nasabah")
+                                        .where({ no_rekening: rekening})
+                                        .update({
+                                            saldo: no.saldo + +jumlah
+                                        })
+                                        .catch(err => {
+                                            console.log(clc.red(err.massage));
+                                            main()
+                                        });
+                                        console.log(clc.greenBright(`Setor tunai berhasil, saldo anda ${new Intl.NumberFormat('id-ID', { style: "currency", currency: "IDR" }).format(no.saldo+ +jumlah)}`));
+                                        main();
+                                };
+                            });
+                        };
+                        jumlahtarik()
+                    }
+
+                    if (e == 3) {
+                        await db("nasabah")
+                        .where({ no_rekening: rekening})
+                        .update({
+                            status: "diblokir"
+                        })
+                        .catch(err => {
+                            console.log(clc.red(err.message));
+                        });
+                        console.log(clc.red("Anda salah memasukkan PIN 3 kali, rekening anda di blokir !!"));
+                        main()
+                    }
+                })
+            }
+            inputPIN(rekening, no.pin)
+        }
+    })
+}
+const tarik = () => {
+    rl.question("Masukkan No rekning Anda: ", async no_rekening => {
+        
+            if (no_rekening.trim().length == 0) {
+                console.log(clc.red("No Rekening harus di isi"));
+            }
+            const no = await db("nasabah").where({no_rekening}).first()
+            if (!no) {
+                console.log(clc.red("No. Rekening belum terdaftar"));
+                tarik()
+            }else if (no.status == "diblokir") {
+                console.log(clc.red("No. Rekening ini tidak aktif/ di blokir"));
+                main()
+            }else {
+                let e = 0;
+                const inputPIN = (no_rekening, hashPIN) => {
+                    rl.question("Masukkan PIN anda: ", async pin => {
+                        if (pin.trim().length == 0) {
+                            console.log(clc.red("PIN harus di isi!!"));
+                            e += 1
+                            inputPIN(no_rekening,hashPIN);
+                        }else if (!bcrypt.compareSync(pin, hashPIN)) {
+                            console.log(clc.red("PIN yang anda masukkan salah!!"));
+                            e += 1;;
+                            if (e < 3) {
+                               inputPIN(no_rekening, hashPIN) 
+                            }
+                        }else {
+                            const jumlahtarik= () => {
+                                console.log("### Pecahan Uang ###");
+                                console.log("1. Rp 50.000,00 ");
+                                console.log("2. Rp 100.000,00");
+                                rl.question("Silahkan pilih Pecahan uang yang ingin anda tarik: " ,async uang => {
+                                        const temp =  await db("nasabah").where({no_rekening}).first
+                                        if (uang == 1) {
+                                            rl.question("Masukkan jumlah uang yang ingin kamu tarik: ",async nominal => {
+                                                if (+nominal.trim() == 0) {
+                                                    console.log(clc.red("Uang harus diisi!!!"));
+                                                    jumlahtarik()
+                                                }
+                                                else if (temp.saldo < +nominal ) {
+                                                    console.log(clc.red("Saldo anda tidak cukup !!!"));
+                                                    jumlahtarik()
+                                                }
+                                                else if (+nominal < 50000) {
+                                                    console.log(clc.red("Uang yang di tarik minimal Rp 50.000,00"));
+                                                    jumlahtarik()
+                                                
+                                                }else if (+nominal.trim() % 50000 != 0) {
+                                                    console.log(clc.red("Uang yang di tarik harus pecahan Rp 50.000,00 "));
+                                                    jumlahtarik()
+                                                }
+                                                else {
+                                                    
+                                                    await db("nasabah")
+                                                    .where({ no_rekening})
+                                                    .update({
+                                                        saldo: no.saldo - +nominal
+                                                    })
+                                                    .catch(err => {
+                                                        console.log(clc.red(err.massage));
+                                                        main()
+                                                    });
+                                                    console.log(clc.greenBright(`Tarik tunai berhasil, saldo anda ${new Intl.NumberFormat('id-ID', { style: "currency", currency: "IDR" }).format(no.saldo - +nominal)}`));
+                                                    main();
+                                                    
+                                                }
+                                            })
+                                        }else if (uang == 2) {
+                                            rl.question("Masukkan jumlah uang yang ingin kamu tarik: ",async nominal => {
+                                                if (+nominal.trim() == 0) {
+                                                    console.log(clc.red("Uang harus diisi!!!"));
+                                                    jumlahtarik()
+                                                }
+                                                else if (temp.saldo < +nominal ) {
+                                                    console.log(clc.red("Saldo anda tidak cukup !!!"));
+                                                    jumlahtarik()
+                                                }
+                                                else if (+nominal < 100000) {
+                                                    console.log(clc.red("Uang yang di tarik minimal Rp 100.000,00"));
+                                                    jumlahtarik()
+                                                
+                                                }else if (+nominal.trim() % 100000 != 0) {
+                                                    console.log(clc.red("Uang yang di tarik harus pecahan Rp 100.000,00 "));
+                                                    jumlahtarik()
+                                                }
+                                                else {
+                                                    
+                                                    await db("nasabah")
+                                                    .where({ no_rekening})
+                                                    .update({
+                                                        saldo: no.saldo - +nominal
+                                                    })
+                                                    .catch(err => {
+                                                        console.log(clc.red(err.massage));
+                                                        main()
+                                                    });
+                                                    console.log(clc.greenBright(`Tarik tunai berhasil, saldo anda ${new Intl.NumberFormat('id-ID', { style: "currency", currency: "IDR" }).format(no.saldo - +nominal)}`));
+                                                    main();
+                                                    
+                                                }
+                                            })
+                                            
+                                        }else {
+                                            console.log(clc.red("Anda salah memasukkan inputan !!!"));
+                                        }
+                                    })
+                                
+                            };
+                            jumlahtarik()
+                        }
+    
+                        if (e == 3) {
+                            await db("nasabah")
+                            .where({ no_rekening})
+                            .update({
+                                status: "diblokir"
+                            })
+                            .catch(err => {
+                                console.log(clc.red(err.message));
+                            });
+                            console.log(clc.red("Anda salah memasukkan PIN 3 kali, rekening anda di blokir !!"));
+                            main()
+                        }
+                    })
+                }
+                inputPIN(no_rekening, no.pin)
+            }
+        })
+    
+}
+
 main()
