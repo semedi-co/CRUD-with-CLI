@@ -216,15 +216,15 @@ const tarik = () => {
                                 console.log("### Pecahan Uang ###");
                                 console.log("1. Rp 50.000,00 ");
                                 console.log("2. Rp 100.000,00");
-                                rl.question("Silahkan pilih Pecahan uang yang ingin anda tarik: " ,async uang => {
-                                        const temp =  await db("nasabah").where({no_rekening}).first
+                                rl.question("Silahkan pilih Pecahan uang yang ingin anda tarik: " , uang => {
+                                        
                                         if (uang == 1) {
                                             rl.question("Masukkan jumlah uang yang ingin kamu tarik: ",async nominal => {
                                                 if (+nominal.trim() == 0) {
                                                     console.log(clc.red("Uang harus diisi!!!"));
                                                     jumlahtarik()
                                                 }
-                                                else if (temp.saldo < +nominal ) {
+                                                else if (no.saldo < +nominal ) {
                                                     console.log(clc.red("Saldo anda tidak cukup !!!"));
                                                     jumlahtarik()
                                                 }
@@ -258,7 +258,7 @@ const tarik = () => {
                                                     console.log(clc.red("Uang harus diisi!!!"));
                                                     jumlahtarik()
                                                 }
-                                                else if (temp.saldo < +nominal ) {
+                                                else if (no.saldo < +nominal ) {
                                                     console.log(clc.red("Saldo anda tidak cukup !!!"));
                                                     jumlahtarik()
                                                 }
