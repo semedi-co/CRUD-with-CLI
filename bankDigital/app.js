@@ -25,9 +25,9 @@ const main = () => {
         }else if (answer == 3) {
             tarik()
         }else if (answer == 4) {
-            
+            transfer()
         }else if (answer == 5) {
-            
+            ceksaldo()
         }else {
             console.log(clc.red("Anda salah memasukkan inputan"));
             main()
@@ -203,11 +203,11 @@ const tarik = () => {
                     rl.question("Masukkan PIN anda: ", async pin => {
                         if (pin.trim().length == 0) {
                             console.log(clc.red("PIN harus di isi!!"));
-                            e += 1
+                            e+= 1
                             inputPIN(no_rekening,hashPIN);
                         }else if (!bcrypt.compareSync(pin, hashPIN)) {
                             console.log(clc.red("PIN yang anda masukkan salah!!"));
-                            e += 1;;
+                            e+= 1
                             if (e < 3) {
                                inputPIN(no_rekening, hashPIN) 
                             }
@@ -314,6 +314,135 @@ const tarik = () => {
             }
         })
     
+}
+const transfer = () => {
+    rl.question("masukkan No Rekening anda: " ,async no_rekening => {
+        const data = await db("nasabah").where({no_rekening}).first()
+        if (no_rekening.trim().length == 0 ) {
+            console.log(clc.red("No Rekening harus di isi !!"));
+            transfer()
+        }else if (!data) {
+            console.log(clc.red("No Rekening masih belum terdaftar!!!"));
+            transfer()
+        }else if (data.status == "diblokir") {
+            console.log(clc.red("Anda tidak bisa melakukan transaksi karna rekening ini di blokir!!!"));
+            main();
+        }else {
+            let e = 0;
+            const inputPIN = (no_rekening, hashPIN) => {
+                rl.question("Masukkan PIN anda: ", async pin => {
+                    if (pin.trim().length == 0) {
+                        console.log(clc.red("PIN harus di isi!!"));
+                        e+= 1
+                        inputPIN(no_rekening,hashPIN);
+                    }else if (!bcrypt.compareSync(pin, hashPIN)) {
+                        console.log(clc.red("PIN yang anda masukkan salah!!"));
+                        e+= 1
+                        if (e < 3) {
+                           inputPIN(no_rekening, hashPIN) 
+                        }
+                    }else {
+                        rl.question("Masukkan No rekening Penerima: ",async penerima => {
+                            const pen= await db("nasabah").where({no_rekening: penerima}).first()
+                            if (penerima.trim().length== 0) {
+                                console.log(clc.red("No Rekening harus di isi!!"));
+                                transfer()
+                            }else if (!data) {
+                                console.log(clc.red("No rekening tidak terdaftar!!!"));
+                                transfer()
+                            }else if (pen.status == "diblokir") {
+                                console.log(clc.red("No rekening penerima tekah di blokir"));
+                                transfer()
+                            }else {
+                                console.log("### info penerima");
+                                console.log("Nasabah ID     : " + pen.id);
+                                console.log("No Rekening    : " + pen.no_rekening);
+                                console.log("Nama           : " + pen.nama);
+                                console.log("Alamat         : " + pen.alamat);
+                               rl.question("Apakah benar No Rekening yang ingin anda transfer[Y/N]: ", benar => {
+                                if (benar.trim().toUpperCase() == "Y") {
+                                    rl.question("masukkan jumlah uang yang ingin kamu transfer: " , async jumlah => {
+                                        if (jumlah.trim().length == 0) {
+                                            console.log(clc.red("Saldo harus di isi"));
+                                            transfer()
+                                        }else if (+jumlah > data.saldo) {
+                                            console.log(clc.red("Saldo anda tidak cukup untuk melakukan transfer"));
+                                            transfer()
+                                        }else if (+jumlah < 10000) {
+                                            console.log("Transfer minimal Rp. 10.000,00");
+                                        }
+                                        else {
+                                            await db("nasabah")
+                                                    .where({ no_rekening})
+                                                    .update({
+                                                        saldo: data.saldo - +jumlah - 2500
+                                                    })
+                                                    .catch(err => {
+                                                        console.log(clc.red(err.massage));
+                                                        main()
+                                                    });
+                                                    console.log(clc.greenBright(`Transfer berhasil, saldo anda ${new Intl.NumberFormat('id-ID', { style: "currency", currency: "IDR" }).format(data.saldo - +jumlah - 2500)}`));
+                                                    main();
+                                                    
+                                        }
+                                    }) 
+                                }else if (benar.trim().toUpperCase() == "N" ) {
+                                    transfer()
+                                }else {
+                                    console.log(clc.red("Anda salah memasukkan inputan"));
+                                    
+                                }
+                               })
+                            }
+                        })
+                        transfer()
+                    }
+                    
+
+                    if (e == 3) {
+                        await db("nasabah")
+                        .where({ no_rekening})
+                        .update({
+                            status: "diblokir"
+                        })
+                        .catch(err => {
+                            console.log(clc.red(err.message));
+                        });
+                        console.log(clc.red("Anda salah memasukkan PIN 3 kali, rekening anda di blokir !!"));
+                        main()
+                    }
+                })
+            }
+            inputPIN(no_rekening, data.pin)
+        }
+    })
+}
+
+const ceksaldo = () => {
+    rl.question("Masukkan No Rekening anda: " , async rekening => {
+        const rek = await db("nasabah").where({no_rekening: rekening}).first()
+        if (rekening.trim().length == 0) {
+            console.log(clc.red("No Rekening harus di isi"));
+            ceksaldo()
+        }else if (rek.status == "diblokir") {
+            console.log(clc.red("No Rekening di blokir"));
+            ceksaldo()
+        }else if (!rek) {
+            console.log(clc.red("No Rekening tidak terdaftar"));
+            ceksaldo()
+        }else {
+            rl.question("Masukkan PIN anda: " ,pin => {
+                if (pin.trim().length == 0) {
+                    console.log(clc.red("PIN harus di isi!!"));
+                    ceksaldo()
+                }else  {
+                    console.log("### info saldo ###");
+                    console.log("Saldo          : " + rek.saldo);   
+                    main()     
+                }
+            })
+        }
+    })
 }
 
 main()
