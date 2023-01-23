@@ -5,8 +5,8 @@
 exports.up = function(knex) {
   return knex.schema.createTable("mutasi", t => {
     t.string("id").primary();
-    t.string("pengirim_id").notNullable();
-    t.string("penerima_id").notNullable();
+    t.string("nasabah_id").notNullable();
+    t.foreign("nasabah_id").references("id").inTable("nasabah");
     t.enum("status", ["masuk", "keluar"]).notNullable();
     t.integer("jumlah").notNullable();
     t.timestamps(true, true);
